@@ -69,7 +69,10 @@ def _decode_ramp(chunk_data: bytes) -> tuple[int, bytes]:
     page = chunk_data[2]
     body = chunk_data[3:]
     if flags & ZXSTRF_COMPRESSED:
-        body = zlib.decompress(body)
+        decompressor = zlib.decompressobj()
+        body = decompressor.decompress(body, PAGE_BYTES + 1)
+        if not decompressor.eof:
+            raise ValueError(f"RAMP page {page} exceeds {PAGE_BYTES} bytes or has an incomplete zlib stream")
     if len(body) != PAGE_BYTES:
         raise ValueError(f"RAMP page {page} decompressed to {len(body)} bytes (expected {PAGE_BYTES})")
     return page, body

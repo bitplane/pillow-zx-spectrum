@@ -38,6 +38,12 @@ def test_decode_ramp_handles_zlib_compression():
     assert body == raw
 
 
+def test_decode_ramp_rejects_oversized_compressed_page():
+    chunk = struct.pack("<H", 1) + bytes([5]) + zlib.compress(b"\x00" * (16384 * 100))
+    with pytest.raises(ValueError, match="exceeds 16384 bytes"):
+        _decode_ramp(chunk)
+
+
 def test_pillow_open_szx(tmp_path):
     page5 = bytearray(16384)
     page5[:6912] = make_screen(0xFF, 0x07)
