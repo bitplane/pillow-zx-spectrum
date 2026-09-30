@@ -152,7 +152,12 @@ def rank_screens(candidates: Iterable[ScreenCandidate]) -> list[bytes]:
     scored: list[tuple[int, int, int, bytes]] = []
     for order, c in enumerate(candidates):
         q = screen_quality(c.body)
-        if q == 0:
+        # A declared CODE/snapshot screen (or a block aimed at screen RAM)
+        # remains valid even when its attribute pattern defeats the heuristic.
+        explicit_screen = c.origin == "direct" and (
+            c.event.kind in (KIND_CODE, KIND_SNAPSHOT) or c.event.addr == SCREEN_ADDR
+        )
+        if q == 0 and not explicit_screen:
             continue
         scored.append((_priority(c), -q, order, c.body))
     scored.sort()
