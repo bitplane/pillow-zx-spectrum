@@ -81,6 +81,8 @@ def _decode_ramp(chunk_data: bytes) -> tuple[int, bytes]:
 def parse_szx(data: bytes) -> Snapshot:
     if not data.startswith(SZX_MAGIC):
         raise ValueError("not an SZX file")
+    if len(data) < HEADER_LEN:
+        raise ValueError("SZX too short for header")
     machine_id = data[6]
     snap = Snapshot(machine=MACHINE_BY_ID.get(machine_id, MachineType.UNKNOWN))
     is_128k = snap.machine in (

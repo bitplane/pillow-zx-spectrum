@@ -27,6 +27,11 @@ def test_parse_szx_extracts_screen_from_page_5():
     assert snap.screen() == s
 
 
+def test_parse_szx_rejects_truncated_header():
+    with pytest.raises(ValueError, match="too short for header"):
+        parse_szx(b"ZXST")
+
+
 def test_decode_ramp_handles_zlib_compression():
     page5 = bytearray(16384)
     page5[:6912] = make_screen(0xFF, 0x07)

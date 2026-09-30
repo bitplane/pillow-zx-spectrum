@@ -27,6 +27,15 @@ def iter_tzx_blocks(data: bytes) -> Iterator[Block]:
     """Yield each standard ROM-loader Block in a TZX file (skipping meta)."""
     if not data.startswith(TZX_MAGIC):
         raise ValueError("not a TZX file")
+    if len(data) < len(TZX_MAGIC) + 2:
+        raise ValueError("TZX too short for version header")
+    try:
+        yield from _walk_tzx_blocks(data)
+    except (IndexError, struct.error) as e:
+        raise ValueError("truncated TZX block") from e
+
+
+def _walk_tzx_blocks(data: bytes) -> Iterator[Block]:
     i = len(TZX_MAGIC) + 2  # magic + version major.minor
 
     while i < len(data):
@@ -35,6 +44,8 @@ def iter_tzx_blocks(data: bytes) -> Iterator[Block]:
         if bid == 0x10:  # standard speed data
             _, length = struct.unpack_from("<HH", data, i)
             i += 4
+            if i + length > len(data):
+                raise ValueError("truncated TZX standard data block")
             try:
                 yield parse_block(data[i : i + length])
             except ValueError:
@@ -44,6 +55,8 @@ def iter_tzx_blocks(data: bytes) -> Iterator[Block]:
             i += 0x0F  # skip 15 bytes of timing
             length = data[i] | (data[i + 1] << 8) | (data[i + 2] << 16)
             i += 3
+            if i + length > len(data):
+                raise ValueError("truncated TZX turbo data block")
             try:
                 yield parse_block(data[i : i + length])
             except ValueError:
@@ -118,6 +131,8 @@ def iter_tzx_blocks(data: bytes) -> Iterator[Block]:
             i += 9
         else:
             raise NotImplementedError(f"TZX block id 0x{bid:02x} at offset {i - 1} not supported")
+        if i > len(data):
+            raise ValueError("truncated TZX block")
 
 
 def iter_tzx_events(tzx_data: bytes) -> Iterator[LoadEvent]:

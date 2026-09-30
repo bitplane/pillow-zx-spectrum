@@ -74,6 +74,15 @@ def test_iter_tzx_rejects_bad_magic():
         list(iter_tzx_blocks(b"NOTZX!\x1a\x01\x14"))
 
 
+@pytest.mark.parametrize(
+    "tail",
+    [b"\x10", b"\x11" + bytes(5), b"\x10\x00\x00\x20\x00\xff\x00"],
+)
+def test_iter_tzx_rejects_truncated_blocks(tail):
+    with pytest.raises(ValueError, match="truncated TZX"):
+        list(iter_tzx_blocks(b"ZXTape!\x1a\x01\x14" + tail))
+
+
 def test_iter_tzx_raises_on_unsupported_block():
     # 0x99 isn't a defined TZX block ID; we should raise rather than
     # silently misinterpret bytes.
