@@ -50,3 +50,40 @@ def test_wrong_size_rejected_too_long(tmp_path):
     bad.write_bytes(b"\x00" * 7000)
     with pytest.raises(UnidentifiedImageError):
         Image.open(bad)
+
+
+def test_standard_formats_take_precedence_in_fresh_process():
+    import subprocess
+    import sys
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            """
+import io
+from PIL import Image
+import pillow_zx_spectrum
+for format in ('PNG', 'BMP', 'TIFF'):
+    stream = io.BytesIO()
+    Image.new('RGB', (1, 1), 'red').save(stream, format=format)
+    data = stream.getvalue().ljust(6912, b'\\0')
+    with Image.open(io.BytesIO(data)) as image:
+        assert image.format == format, (format, image.format)
+        assert image.size == (1, 1)
+        assert image.getpixel((0, 0)) == (255, 0, 0)
+# A valid raw screen may resemble a signatureless TGA header.
+for data in (bytes(6912), bytes([0, 0, 3]) + bytes(9) + bytes([1, 0, 1, 0, 8, 0]) + bytes(6894)):
+    with Image.open(io.BytesIO(data)) as image:
+        assert image.format == 'ZXSCR'
+        image.load()
+# Signatureless formats still work when Spectrum validation rejects them.
+stream = io.BytesIO()
+Image.new('RGB', (2, 2), 'red').save(stream, format='TGA')
+with Image.open(io.BytesIO(stream.getvalue())) as image:
+    assert image.format == 'TGA'
+    image.load()
+""",
+        ],
+        check=True,
+    )

@@ -1,7 +1,7 @@
 """Pillow plugin for ZX Spectrum SCREEN$ (.scr) files.
 
-A .scr is exactly 6912 bytes with no magic header. We identify it by file
-extension and validate the size in `_open()`.
+A .scr is exactly 6912 bytes with no magic header. We validate its size in `_open()` after Pillow has tried its
+standard image formats. Raw streams do not need a filename.
 """
 
 from PIL import Image, ImageFile
@@ -35,8 +35,7 @@ class ZXScreenImageFile(ImageFile.ImageFile):
 
 
 def register() -> None:
-    # No magic header; we rely on the .scr extension and the size check in
-    # _open() to validate.
+    # No magic header: the size check also supports anonymous streams.
     Image.register_open(ZXScreenImageFile.format, ZXScreenImageFile)
     Image.register_extension(ZXScreenImageFile.format, ".scr")
     Image.register_decoder("zxscr", ZXScreenDecoder)
