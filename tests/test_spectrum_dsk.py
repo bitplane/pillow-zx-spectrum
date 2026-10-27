@@ -88,3 +88,39 @@ def test_pillow_rejects_non_dsk(tmp_path):
     p.write_bytes(b"random content that is not a dsk")
     with pytest.raises(UnidentifiedImageError):
         Image.open(p)
+
+
+@pytest.mark.parametrize("with_directory", [False, True])
+def test_basic_screen_sized_body_is_not_an_image(with_directory):
+    from pillow_zx_spectrum.spectrum_dsk import extract_screens
+
+    file = make_plus3_header(0, 6912, 10) + make_screen(255, 7)
+    if with_directory:
+        flat = bytearray(9 * 512 * 3)
+        flat[4608:6656] = bytes([0xE5]) * 2048
+        entry = bytearray(32)
+        entry[1:12] = b"PROGRAM BAS"
+        entry[15] = 55  # 7040 bytes including the +3DOS header
+        entry[16:23] = bytes(range(2, 9))
+        flat[4608:4640] = entry
+        flat[6656 : 6656 + len(file)] = file
+        tracks = [
+            [(i + 1, bytes(flat[t + i * 512 : t + (i + 1) * 512])) for i in range(9)] for t in range(0, len(flat), 4608)
+        ]
+    else:
+        sectors = _layout_screen_into_sectors(file)
+        tracks = [[(i + 1, sector) for i, sector in enumerate(sectors)]]
+    assert extract_screens(make_extended_dsk(tracks)) == []
+
+
+@pytest.mark.parametrize("file_type", [0, 1, 2])
+def test_non_code_parameters_are_not_load_addresses(file_type):
+    from pillow_zx_spectrum.cpm import CpmFile
+    from pillow_zx_spectrum.loader import extract_screens
+    from pillow_zx_spectrum.spectrum_dsk import _event_from_cpm_file
+
+    body = make_screen(255, 7) + bytes(512)
+    file = CpmFile(0, "PROGRAM", "DAT", make_plus3_header(file_type, len(body), 0x4000) + body)
+    event = _event_from_cpm_file(file)
+    assert event.addr is None
+    assert extract_screens([event]) == []

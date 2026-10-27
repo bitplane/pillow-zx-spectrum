@@ -39,10 +39,10 @@ from typing import Iterator
 
 from .cpm import detect_reserved_offset, directory_looks_valid, list_files
 from .disk import DiskImage, Sector
-from .loader import KIND_CODE, KIND_RAW, LoadEvent
+from .loader import KIND_BASIC, KIND_CODE, KIND_RAW, LoadEvent
 from .loader import extract_screens as _extract_screens_from_events
 from .pillow_screen import ScreenSequenceImageFile
-from .plus3dos import TYPE_CODE, find_plus3_files, parse_at
+from .plus3dos import TYPE_CODE, TYPE_PROGRAM, find_plus3_files, parse_at
 
 DSK_MAGIC_EXT = b"EXTENDED CPC DSK File"
 DSK_MAGIC_STD = b"MV - CPC"
@@ -164,8 +164,13 @@ def _events_from_layout(flat: bytes, img: DiskImage) -> Iterator[LoadEvent]:
         # No CP/M file system here — fall back to magic-scanning for raw
         # +3DOS files at sector boundaries (no filename info available).
         for f in find_plus3_files(flat):
-            kind = KIND_CODE if f.type == TYPE_CODE else KIND_RAW
-            yield LoadEvent(body=f.body, addr=f.param1, kind=kind)
+            yield _event_from_plus3_file(f)
+
+
+def _event_from_plus3_file(file, name: str = "") -> LoadEvent:
+    kind = KIND_CODE if file.type == TYPE_CODE else KIND_BASIC if file.type == TYPE_PROGRAM else KIND_RAW
+    addr = file.param1 if file.type == TYPE_CODE else None
+    return LoadEvent(body=file.body, addr=addr, name=name, kind=kind)
 
 
 def _event_from_cpm_file(cpm_file) -> LoadEvent:
@@ -178,8 +183,7 @@ def _event_from_cpm_file(cpm_file) -> LoadEvent:
     p3 = parse_at(cpm_file.body, 0)
     name = f"{cpm_file.name}.{cpm_file.ext}".rstrip(".")
     if p3 is not None:
-        kind = KIND_CODE if p3.type == TYPE_CODE else KIND_RAW
-        return LoadEvent(body=p3.body, addr=p3.param1, name=name, kind=kind)
+        return _event_from_plus3_file(p3, name)
     # No +3DOS header — raw bytes. Don't speculate about an address.
     return LoadEvent(body=cpm_file.body, addr=None, name=name, kind=KIND_RAW)
 
