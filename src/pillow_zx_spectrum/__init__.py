@@ -40,7 +40,7 @@ spectrum_tzx.register()  # "ZXTape!\x1a"
 spectrum_szx.register()  # "ZXST"
 spectrum_scl.register()  # "SINCLAIR"
 spectrum_scr.register()  # exactly 6912 bytes
-spectrum_sna.register()  # exactly 49179 or 131103 bytes
+spectrum_sna.register()  # 48K or either 128K snapshot size
 spectrum_trd.register()  # TR-DOS magic byte 0x10 at $8E7
 spectrum_mgt.register()  # MGT directory validity check
 spectrum_mdr.register()  # Microdrive sector-checksum validity check

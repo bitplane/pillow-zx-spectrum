@@ -94,7 +94,7 @@ Most of them tbh:
 
 | Ext    | Format          | Notes |
 | ------ | --------------- | ----- |
-| `.sna` | SNA             | Classic 48K (49179 bytes) / 128K (131103 bytes) snapshot |
+| `.sna` | SNA             | Classic 48K (49179 bytes) / 128K (131103 or 147487 bytes) snapshot |
 | `.z80` | Z80             | Gerton Lunter format (v1, v2, v3); 48K and 128K with bank decompression |
 | `.szx` | SZX / ZX-State  | Spectaculator's modern chunked snapshot, with zlib-compressed RAM pages |
 | `.slt` | SLT             | "Super Level Loader" — a Z80 snapshot with a table of additional screens (each becomes a frame) |
