@@ -110,7 +110,7 @@ def parse_szx(data: bytes) -> Snapshot:
                 snap.ram[0x4000:0x8000] = page_data
             elif page == 2:
                 snap.ram[0x8000:0xC000] = page_data
-            elif page == port_7ffd & 0x07:
+            if page == port_7ffd & 0x07:
                 snap.ram[0xC000:RAM_SIZE] = page_data
         else:
             # 48K mode: pages 5, 2, 0 -> $4000, $8000, $C000

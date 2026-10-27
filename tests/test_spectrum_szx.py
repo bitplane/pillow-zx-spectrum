@@ -64,3 +64,18 @@ def test_pillow_rejects_bad_magic(tmp_path):
     p.write_bytes(b"NOTSZX!\x00" + b"\x00" * 100)
     with pytest.raises(UnidentifiedImageError):
         Image.open(p)
+
+
+@pytest.mark.parametrize("paged_bank", range(8))
+@pytest.mark.parametrize("spcr_first", [False, True])
+def test_128k_fixed_and_paged_mappings(paged_bank, spcr_first):
+    banks = {i: bytes([i + 1]) * 16384 for i in range(8)}
+    data = make_szx(banks, machine_id=2)
+    spcr = b"SPCR" + struct.pack("<I", 8) + bytes([0, paged_bank]) + bytes(6)
+    data = data[:8] + spcr + data[8:] if spcr_first else data + spcr
+    snap = parse_szx(data)
+    assert snap.banks == banks
+    assert len(snap.ram) == 65536
+    assert snap.ram[0x4000:0x8000] == banks[5]
+    assert snap.ram[0x8000:0xC000] == banks[2]
+    assert snap.ram[0xC000:] == banks[paged_bank]

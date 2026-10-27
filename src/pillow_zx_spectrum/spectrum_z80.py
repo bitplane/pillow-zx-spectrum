@@ -187,7 +187,7 @@ def _place_page(snap: Snapshot, page: int, page_data: bytes, is_128k: bool, port
             snap.ram[0x4000:0x8000] = page_data
         elif bank == 2:
             snap.ram[0x8000:0xC000] = page_data
-        elif bank == port_7ffd & 0x07:
+        if bank == port_7ffd & 0x07:
             snap.ram[0xC000:RAM_SIZE] = page_data
     else:
         addr = _PAGE_TO_ADDR_48K.get(page)

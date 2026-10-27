@@ -215,3 +215,15 @@ def test_pillow_rejects_obviously_not_z80(tmp_path):
     p.write_bytes(bytes(30) + b"\x00\x00")  # PC=0, extra_len=0 (invalid)
     with pytest.raises(UnidentifiedImageError):
         Image.open(p)
+
+
+@pytest.mark.parametrize("paged_bank", range(8))
+def test_128k_fixed_and_paged_mappings(paged_bank):
+    banks = {i: bytes([i + 1]) * 16384 for i in range(8)}
+    pages = {i + 3: body for i, body in banks.items()}
+    snap = parse_z80(make_z80_v3(pages, hardware_mode=4, port_7ffd=paged_bank))
+    assert snap.banks == banks
+    assert len(snap.ram) == 65536
+    assert snap.ram[0x4000:0x8000] == banks[5]
+    assert snap.ram[0x8000:0xC000] == banks[2]
+    assert snap.ram[0xC000:] == banks[paged_bank]
