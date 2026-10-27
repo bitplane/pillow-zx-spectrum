@@ -83,14 +83,24 @@ def _sector_offset(track: int, sector: int) -> int:
     return file_track_index * TRACK_BYTES + (sector - 1) * SECTOR_BYTES
 
 
+def _directory_entries(data: bytes) -> Iterator[bytes]:
+    """Read complete directory entries from tracks 0..3 of side zero."""
+    for track in range(DIR_TRACKS):
+        start = _sector_offset(track, 1)
+        for offset in range(start, start + TRACK_BYTES, DIR_ENTRY_LEN):
+            entry = data[offset : offset + DIR_ENTRY_LEN]
+            if len(entry) != DIR_ENTRY_LEN:
+                return
+            yield entry
+
+
 def parse_mgt_files(data: bytes) -> Iterator[MgtFile]:
     """Yield each non-empty file in the directory, with body reassembled
     by following the per-sector chain pointers."""
     if len(data) < DIR_ENTRIES * DIR_ENTRY_LEN:
         return  # too short even for an empty directory
 
-    for i in range(DIR_ENTRIES):
-        e = data[i * DIR_ENTRY_LEN : (i + 1) * DIR_ENTRY_LEN]
+    for e in _directory_entries(data):
         type_byte = e[0] & 0x1F
         if type_byte == 0:
             continue  # empty / deleted slot
@@ -147,10 +157,7 @@ def directory_looks_valid(data: bytes) -> bool:
     if len(data) < DIR_ENTRY_LEN:
         return False
     # Find the first non-empty entry; require it to look like a real file.
-    for i in range(DIR_ENTRIES):
-        if i * DIR_ENTRY_LEN + DIR_ENTRY_LEN > len(data):
-            return False
-        e = data[i * DIR_ENTRY_LEN : (i + 1) * DIR_ENTRY_LEN]
+    for e in _directory_entries(data):
         type_byte = e[0] & 0x1F
         if type_byte == 0:
             continue

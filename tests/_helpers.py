@@ -320,7 +320,8 @@ def make_mgt(
         entry[211] = spectrum_type
         struct.pack_into("<HH", entry, 212, length & 0xFFFF, addr & 0xFFFF)
         entry[218:220] = b"\xff\xff"
-        out[i * 256 : (i + 1) * 256] = entry
+        directory_offset = offset(i // 20, 1) + (i % 20) * 256
+        out[directory_offset : directory_offset + 256] = entry
 
         # Write body, chunked into sectors with chain pointers
         body_cursor = 0

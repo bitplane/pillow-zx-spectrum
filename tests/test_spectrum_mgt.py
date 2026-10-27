@@ -6,6 +6,7 @@ from pillow_zx_spectrum.mgt import (
     TYPE_BASIC,
     TYPE_CODE,
     TYPE_SCREEN,
+    directory_looks_valid,
     parse_mgt_files,
 )
 from pillow_zx_spectrum.spectrum_mgt import extract_screens
@@ -57,3 +58,32 @@ def test_pillow_rejects_garbage(tmp_path):
     p.write_bytes(b"\xff" * 100000)  # not a valid directory
     with pytest.raises(UnidentifiedImageError):
         Image.open(p)
+
+
+@pytest.mark.parametrize("directory_offset", [0, 10240, 20480, 30720, 35584])
+def test_directory_entries_on_each_side_zero_track(directory_offset):
+    import io
+
+    screen = make_screen(0xFF, 0x07)
+    data = bytearray(make_mgt([("Picture", TYPE_SCREEN, 0x4000, 6912, screen)]))
+    entry = bytes(data[:256])
+    data[:256] = bytes(256)
+    data[directory_offset : directory_offset + 256] = entry
+    assert directory_looks_valid(data)
+    assert [f.body for f in parse_mgt_files(data)] == [screen]
+    with Image.open(io.BytesIO(data)) as image:
+        assert image.format == "ZXMGT"
+        image.load()
+
+
+def test_opposite_side_is_not_a_directory():
+    data = bytearray(make_mgt([("Picture", TYPE_SCREEN, 0x4000, 6912, make_screen(255, 7))]))
+    data[5120:5376] = data[:256]
+    data[:256] = bytes(256)
+    assert not directory_looks_valid(data)
+    assert list(parse_mgt_files(data)) == []
+
+
+def test_builder_places_files_across_directory_tracks():
+    files = [(f"file{i}", TYPE_BASIC, 10, 1, b"x") for i in range(80)]
+    assert [f.name for f in parse_mgt_files(make_mgt(files))] == [f[0] for f in files]
