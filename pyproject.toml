@@ -1,7 +1,7 @@
 [project]
 name = "pillow_zx_spectrum"
 description = "Load images from 8-bit computer tapes"
-version = "0.2.0"
+version = "0.2.1"
 authors = [
     { name = "Gareth Davidson", email = "gaz@bitplane.net" }
 ]
